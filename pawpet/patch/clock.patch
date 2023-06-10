@@ -1,0 +1,49 @@
+diff --git a/hal/src/thumbv6m/clock.rs b/hal/src/thumbv6m/clock.rs
+index 9dee0c6..54488c5 100644
+--- a/hal/src/thumbv6m/clock.rs
++++ b/hal/src/thumbv6m/clock.rs
+@@ -60,6 +60,30 @@ impl State {
+         // validate the divisor factor based on gclk ID (samd21 see 15.8.5, for samd11
+         // see 14.8.5)
+         let mut divisor_invalid = false;
++        
++        // exponential divider only needed for numbers greater than 32
++        // check if divider matches 2*(N+1) within 16 bits
++        let mut exp_divider = true;
++        let divider: u16 = match divider {
++            32 => 4,
++            64 => 5,
++            128 => 6,
++            256 => 7,
++            512 => 8,
++            1024 => 9,
++            2048 => 10,
++            4096 => 11,
++            8192 => 12,
++            16384 => 13,
++            32768 => 14,
++            65535 => 15,
++            _ => {
++                exp_divider = false;
++                divider.try_into().unwrap()
++            }
++        };
++
++        // keep bit value of divider valid
+         if gclk == GCLK1 {
+             if divider as u32 >= 2_u32.pow(16) {
+                 divisor_invalid = true;
+@@ -84,8 +108,11 @@ impl State {
+         self.gclk.genctrl.write(|w| unsafe {
+             w.id().bits(u8::from(gclk));
+             w.src().bits(u8::from(src));
+-            // divide directly by divider, rather than exponential
+-            w.divsel().clear_bit();
++            if exp_divider {
++                w.divsel().set_bit();
++            } else {
++                w.divsel().clear_bit();
++            }
+             w.idc().bit(improve_duty_cycle);
+             w.genen().set_bit();
+             w.oe().set_bit()

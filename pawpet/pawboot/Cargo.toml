@@ -1,0 +1,53 @@
+[package]
+name = "pawboot"
+version = "0.1.0"
+edition = "2021"
+
+# for cargo flash
+[package.metadata]
+chip = "ATSAMD21G18A"
+
+[dependencies.cortex-m-rt]
+version = "0.7"
+optional = true
+
+[dependencies.usb-device]
+version = "0.2.9"
+optional = true
+
+[dependencies.atsamd-hal]
+version = "0.15.1"
+default-features = false
+path = "../target/atsamd/hal"
+
+[dependencies]
+cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
+panic-halt = "0.2"
+critical-section = "1.0"
+usbd-hid = "0.6.1"
+defmt = "0.3.2"
+
+[dependencies.hf2hid]
+version = "0.1.0"
+default-features = false
+path = "../lib/hf2hid"
+
+[features]
+default = ["rt", "atsamd-hal/samd21g", "usb"]
+rt = ["cortex-m-rt", "atsamd-hal/samd21g-rt"]
+usb = ["atsamd-hal/usb", "usb-device"]
+
+[dependencies.pawbsp]
+version = "0.1.0"
+default-features = false
+path = "../lib/pawbsp"
+
+[dependencies.pawdevices]
+version = "0.1.0"
+default-features = false
+path = "../lib/pawdevices"
+
+[dependencies.pawdevicetraits]
+version = "0.1.0"
+default-features = false
+path = "../lib/pawdevicetraits"

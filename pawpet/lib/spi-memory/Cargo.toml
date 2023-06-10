@@ -1,0 +1,10 @@
+[package]
+name = "spi-memory"
+version = "0.3.0"
+edition = "2021"
+
+[dependencies]
+embedded-hal = "^0.2.3"
+log = { version = "0.4.6", optional = true }
+bitflags = "1.0.4"
+

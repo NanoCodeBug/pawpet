@@ -1,0 +1,4 @@
+target/
+sprites/
+Cargo.lock
+.vscode

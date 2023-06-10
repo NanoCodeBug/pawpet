@@ -1,0 +1,21 @@
+define hook-quit
+    detach
+    set confirm off
+end
+
+
+# print demangled symbols by default
+set print asm-demangle on
+
+# BMP
+target extended-remote COM3
+
+monitor swdp_scan
+attach 1
+
+# start from beginning
+load
+#start
+run
+
+# attach only

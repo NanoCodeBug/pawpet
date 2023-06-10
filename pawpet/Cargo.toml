@@ -1,0 +1,49 @@
+
+
+[workspace]
+members = [
+    "pawos",
+    "pawboot",
+]
+
+# dev profiles 
+[profile.dev.package."*"] 
+codegen-units = 12
+opt-level = "s" 
+
+[profile.dev.package.pawboot]
+incremental = false
+codegen-units = 4
+debug = true
+opt-level = "z"
+
+[profile.dev.package.pawdevices] 
+codegen-units = 12
+opt-level = 3
+
+[profile.dev]
+incremental = false
+codegen-units = 12
+debug = true
+lto = true
+panic = "abort"
+opt-level = 1
+
+# release profiles
+[profile.release.package."*"] 
+codegen-units = 1
+opt-level = 3
+
+[profile.release.package.pawboot]
+incremental = false
+codegen-units = 1
+debug = true
+opt-level = "z"
+
+[profile.release]
+incremental = false
+codegen-units = 1
+debug = true
+lto = true
+panic = "abort"
+opt-level =  3

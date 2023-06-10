@@ -1,0 +1,5 @@
+SelectInterface swd
+Speed 4000 
+r
+loadfile board\setup\pawos_setup.hex
+exit
