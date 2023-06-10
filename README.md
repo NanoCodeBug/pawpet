@@ -1,3 +1,12 @@
+# PawPet
+
+![PawPet](pawpets.png)
+
+A virtual pet using the atsamd21g and sharp memory lcd, runs off of 2xAAA for a couple of months. 
+See [PawPet on Hacakday.io](https://hackaday.io/project/183032-paw-pet) for full gallery.
+
+This is a rewrite in Rust of the original (and unfinished) arduino based code. That codebase is preserved at [PawPet Arduino](https://github.com/NanoCodeBug/pawpet-arduino).
+
 # Simulator
 A webasm simulator of the pawpet using wasm-pack.
 
