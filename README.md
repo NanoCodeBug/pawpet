@@ -59,9 +59,7 @@ tools/build.ps1
 4. disable BOD33 fuse 
 
 ## Updating Pawpet
-- pawcon tool supports restarting the pawpet into update mode and flashing new content to its internal storage
-
-
+- `pawcon` tool supports restarting the pawpet into update mode and flashing new content to its internal storage
 
 # Licensing 
 
@@ -69,4 +67,4 @@ tools/build.ps1
 All code is licensed under the MIT license.
 
 ## Assets
-Graphics, art, and models found in all of the `sprites` and `case` folders are licensed under the Creative Commons Attribution-NonCommercial 4.0 International Public License.  
+All graphics, art, and 3d models are licensed under the Creative Commons Attribution-NonCommercial 4.0 International Public License.
