@@ -585,6 +585,12 @@ impl StorageDevice for SimpleFlashStorage {
                 if self.fs.read_file(&index_entry, file_buff) {
                     *first_empty = Some(CacheEntry::new(key, self.cache_offset));
                     self.cache_offset += index_entry.length as usize;
+
+                    debug_rprintln!(
+                        "\tbuffer address {:p}",
+                        file_buff,
+                    );
+
                     return Some(file_buff);
                 }
             }

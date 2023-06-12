@@ -80,10 +80,11 @@ impl GameState for EggState {
         display.clear(BinaryColor::Off).ok();
 
         self.bg.draw(display, 2, 8);
+        // self.bg.draw(display, 0, 0);
 
         Line::new(Point::new(0, 40), Point::new(64, 40))
             .into_styled(PrimitiveStyle::with_stroke(BinaryColor::On, 1))
-            .draw(display);
+            .draw(display).ok();
 
         if self.tick_to_hatch == 0 {
             self.creature.draw(display, 16, 28);

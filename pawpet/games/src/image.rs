@@ -1,5 +1,6 @@
-use core::mem::size_of;
+use core::{mem::size_of, ptr::null};
 use pawdevicetraits::DisplayDevice;
+use rtt_target::debug_rprintln;
 
 #[repr(C)]
 #[repr(packed)]
@@ -17,17 +18,27 @@ pub struct PawImage {
     alpha_color: Option<bool>,
     data: Option<&'static [u8]>,
     frame: u8,
+    image_ptr_offset: usize,
+    encoding: u8,
+    width: u8,
+    height: u8,
 }
 
 impl PawImage {
     pub fn new(data: Option<&'static [u8]>) -> Self {
-        Self {
+        let mut s = Self {
             off_color: false,
             on_color: true,
             alpha_color: None,
             data,
             frame: 0,
-        }
+            image_ptr_offset: 0,
+            encoding: 0,
+            width: 0,
+            height: 0,
+        };
+        s.set_image(data);
+        return s;
     }
 
     pub fn new_no_data() -> Self {
@@ -35,14 +46,19 @@ impl PawImage {
             off_color: false,
             on_color: true,
             alpha_color: None,
-            data : None,
+            data: None,
             frame: 0,
+            image_ptr_offset: 0,
+            encoding: 0,
+            width: 0,
+            height: 0,
         }
     }
 
-    pub fn set_image(&mut self, data: Option<&'static [u8]>)
-    {
+    pub fn set_image(&mut self, data: Option<&'static [u8]>) {
         self.data = data;
+
+        self.update_image_data_offset();
     }
 
     pub fn set_colors(&mut self, on_color: bool, off_color: bool, alpha_color: Option<bool>) {
@@ -51,158 +67,155 @@ impl PawImage {
         self.alpha_color = alpha_color;
     }
 
-    pub fn set_frame(&mut self, frame: u8) {
-        self.frame = frame;
-    }
-
-    pub fn draw(&self, disp: &mut impl DisplayDevice, dx: u8, dy: u8) {
+    pub fn update_image_data_offset(&mut self) {
         if self.data.is_none() {
             return;
         }
+
         let data = self.data.unwrap();
 
-        let meta_ptr: *const PawImageHeader;
-        unsafe {
-            meta_ptr = core::mem::transmute(data[0..size_of::<PawImageHeader>()].as_ptr());
-        }
+        let meta_ptr: *const PawImageHeader =
+            unsafe { core::mem::transmute(data[0..size_of::<PawImageHeader>()].as_ptr()) };
+
         let meta: &PawImageHeader = unsafe { &*meta_ptr };
 
-        // let frame_offsets: *const u8 = unsafe {
-        //     core::mem::transmute(self.data[size_of::<PawImageHeader>()..self.data.len()].as_ptr())
-        // };
-        let frame_offsets_slice = &data[size_of::<PawImageHeader>()..data.len()];
-
-        let mut image_ptr = unsafe {
-            core::mem::transmute(
-                data[size_of::<PawImageHeader>()..data.len()].as_ptr(),
-            )
-        };
+        self.image_ptr_offset = size_of::<PawImageHeader>() + 2;
 
         // sprite map/animation
-        if meta.tile_count > 1
-        {
-            let tileoffset = meta.tile_count * 2;
+        if meta.tile_count > 1 {
+            let frame_offsets_list = &data[size_of::<PawImageHeader>()..data.len()];
+            let frame_offsets_length = meta.tile_count * 2;
 
-            let data_ptr_start: *const u8 = unsafe {
-                core::mem::transmute(
-                    data[(size_of::<PawImageHeader>() + (tileoffset as usize))..data.len()].as_ptr(),
-                )
-            };
             let frame = (self.frame as usize) * 2;
-            let frame_offset = [frame_offsets_slice[frame], frame_offsets_slice[frame + 1]];
-            let tile_loc_offset_bytes = u16::from_le_bytes(frame_offset);
-    
-            image_ptr = unsafe { data_ptr_start.offset(tile_loc_offset_bytes as isize) };
+            let frame_offset_bytes = [frame_offsets_list[frame], frame_offsets_list[frame + 1]];
+            let frame_offset = u16::from_le_bytes(frame_offset_bytes) as usize;
+
+            self.image_ptr_offset =
+                size_of::<PawImageHeader>() + (frame_offsets_length as usize) + frame_offset;
         }
 
+        self.width = meta.width as u8;
+        self.height = meta.height as u8;
+        self.encoding = meta.encoding as u8;
+    }
 
-        match meta.encoding {
+    pub fn set_frame(&mut self, frame: u8) {
+        self.frame = frame;
+
+        self.update_image_data_offset();
+    }
+
+    pub fn draw(&self, disp: &mut impl DisplayDevice, x: u8, y: u8) {
+        if self.data.is_none() {
+            return;
+        }
+
+        let data = self.data.unwrap();
+
+        let image_ptr =
+            unsafe { core::mem::transmute(data[self.image_ptr_offset..data.len()].as_ptr()) };
+
+        match self.encoding {
             0 => {
                 //bitmap no alpha
-                self.draw_bitmap(disp, image_ptr, meta, dx, dy);
+                self.draw_bitmap(disp, image_ptr, x, y);
             }
             1 => {
                 //bitmap with alpha
-                self.draw_bitmap_alpha(disp, image_ptr, meta, dx, dy);
+                self.draw_bitmap_alpha(disp, image_ptr, x, y);
             }
             2 => {
                 //span
-                self.draw_span(disp, image_ptr, meta, dx, dy);
+                self.draw_span(disp, image_ptr, x, y);
             }
             3 => {
                 // span with alpha
-                self.draw_span_alpha(disp, image_ptr, meta, dx, dy);
+                self.draw_span_alpha(disp, image_ptr, x, y);
             }
             _ => {}
         }
     }
 
-    pub fn draw_span(
-        &self,
-        disp: &mut impl DisplayDevice,
-        data: *const u8,
-        meta: &PawImageHeader,
-        dx: u8,
-        dy: u8,
-    ) {
-        let bitmap_length = meta.width * meta.height;
-        let mut pixels_read = 0;
+    pub fn draw_span(&self, disp: &mut impl DisplayDevice, data: *const u8, dx: u8, dy: u8) {
+        let dyt = dy + self.height as u8;
+        let dxt = dx + self.width as u8;
+
         let mut curr_byte = 0;
+        let mut pixel_data = unsafe { *data.offset(curr_byte) };
+        let mut length = pixel_data & 0x7F;
 
-        while pixels_read < bitmap_length {
-            let pixel_data = unsafe { *data.offset(curr_byte) };
-
-            let length = pixel_data & 0x7F;
-            let color = (pixel_data >> 7) & 0x1;
-
-            for _p in 0..length {
-                let x = (pixels_read % meta.width) as u8;
-                let y = (pixels_read / meta.width) as u8;
-
-                match color {
-                    0 => {
-                        disp.draw_pixel((dx + x) as u8, (dy + y) as u8, self.off_color);
-                    }
-                    1 => {
-                        disp.draw_pixel((dx + x) as u8, (dy + y) as u8, self.on_color);
-                    }
-                    _ => {}
+        for y in dy..dyt {
+            for x in dx..dxt {
+                if length == 0 {
+                    curr_byte += 1;
+                    pixel_data = unsafe { *data.offset(curr_byte) };
+                    length = pixel_data & 0x7F;
                 }
-                pixels_read += 1;
+
+                if (pixel_data >> 7) & 0x1 > 0 {
+                    disp.draw_pixel(x, y, self.on_color);
+                } else {
+                    disp.draw_pixel(x, y, self.off_color);
+                }
+
+                length -= 1;
             }
-            curr_byte += 1;
         }
     }
     pub fn draw_span_alpha(
         &self,
         disp: &mut impl DisplayDevice,
         data: *const u8,
-        meta: &PawImageHeader,
         dx: u8,
         dy: u8,
     ) {
-        let bitmap_length = meta.width * meta.height;
-        let mut pixels_read = 0;
         let mut curr_byte = 0;
+        let mut pixel_data = unsafe { *data.offset(curr_byte) };
 
-        while pixels_read < bitmap_length {
-            let pixel_data = unsafe { *data.offset(curr_byte) };
+        let mut length = pixel_data & 0x3F;
+        let mut color = (pixel_data >> 6) & 0x3;
 
-            let length = pixel_data & 0x3F;
-            let color = (pixel_data >> 6) & 0x3;
+        let dyt = dy + self.height as u8;
+        let dxt = dx + self.width as u8;
 
-            for _p in 0..length {
-                let x = (pixels_read % meta.width) as u8;
-                let y = (pixels_read / meta.width) as u8;
+        for y in dy..dyt {
+            for x in dx..dxt {
+                if length == 0 {
+                    curr_byte += 1;
+                    pixel_data = unsafe { *data.offset(curr_byte) };
+                    length = pixel_data & 0x3F;
+                    color = (pixel_data >> 6) & 0x3;
+                }
 
                 match color {
                     0 => {
-                        disp.draw_pixel((dx + x) as u8, (dy + y) as u8, self.off_color);
+                        disp.draw_pixel(x, y, self.off_color);
                     }
                     1 => {
-                        disp.draw_pixel((dx + x) as u8, (dy + y) as u8, self.on_color);
+                        disp.draw_pixel(x, y, self.on_color);
+                    }
+                    2 => {
+                        if self.alpha_color.is_some() {
+                            disp.draw_pixel(x, y, self.alpha_color.unwrap());
+                        }
                     }
                     _ => {}
                 }
-                pixels_read += 1;
+                length -= 1;
             }
-            curr_byte += 1;
         }
     }
 
-    pub fn draw_bitmap(
-        &self,
-        disp: &mut impl DisplayDevice,
-        data: *const u8,
-        meta: &PawImageHeader,
-        dx: u8,
-        dy: u8,
-    ) {
+    pub fn draw_bitmap(&self, disp: &mut impl DisplayDevice, data: *const u8, dx: u8, dy: u8) {
         let mut pack: u8 = 0;
         let mut bit_index: u8 = 0;
         let mut packed_u8_index: isize = 0;
-        for y in 0..meta.height as u8 {
-            for x in 0..meta.width as u8 {
+
+        let dyt = dy + self.height as u8;
+        let dxt = dx + self.width as u8;
+
+        for y in dy..dyt {
+            for x in dx..dxt {
                 // shift saved byte to next bit
                 if bit_index > 0 {
                     pack >>= 1;
@@ -216,9 +229,9 @@ impl PawImage {
                 }
 
                 if pack & 0x1 > 0 {
-                    disp.draw_pixel((dx + x) as u8, (dy + y) as u8, self.on_color);
+                    disp.draw_pixel(x, y, self.on_color);
                 } else {
-                    disp.draw_pixel((dx + x) as u8, (dy + y) as u8, self.off_color);
+                    disp.draw_pixel(x, y, self.off_color);
                 }
             }
         }
@@ -227,15 +240,17 @@ impl PawImage {
         &self,
         disp: &mut impl DisplayDevice,
         data: *const u8,
-        meta: &PawImageHeader,
         dx: u8,
         dy: u8,
     ) {
         let mut pack: u8 = 0;
         let mut bit_index: u8 = 0;
         let mut packed_u8_index: isize = 0;
-        for y in 0..meta.height as u8 {
-            for x in 0..meta.width as u8 {
+        let dyt = dy + self.height as u8;
+        let dxt = dx + self.width as u8;
+
+        for y in dy..dyt {
+            for x in dx..dxt {
                 // shift saved byte to next bit
                 if bit_index > 0 {
                     pack >>= 2;
@@ -251,18 +266,14 @@ impl PawImage {
                 let pixel = pack & 0x3;
                 match pixel {
                     0 => {
-                        disp.draw_pixel((dx + x) as u8, (dy + y) as u8, self.off_color);
+                        disp.draw_pixel(x, y, self.off_color);
                     }
                     1 => {
-                        disp.draw_pixel((dx + x) as u8, (dy + y) as u8, self.on_color);
+                        disp.draw_pixel(x, y, self.on_color);
                     }
                     2 => {
                         if self.alpha_color.is_some() {
-                            disp.draw_pixel(
-                                (dx + x) as u8,
-                                (dy + y) as u8,
-                                self.alpha_color.unwrap(),
-                            );
+                            disp.draw_pixel(x, y, self.alpha_color.unwrap());
                         }
                     }
                     _ => {}
@@ -270,7 +281,6 @@ impl PawImage {
             }
         }
     }
-
 }
 
 pub struct PawAnimation {
@@ -290,9 +300,8 @@ impl PawAnimation {
         }
     }
 
-    pub fn set_image(&mut self, data: Option<&'static [u8]>)
-    {
-        self.image.data = data;
+    pub fn set_image(&mut self, data: Option<&'static [u8]>) {
+        self.image.set_image(data);
     }
 
     pub fn tick(&mut self) {
@@ -301,9 +310,9 @@ impl PawAnimation {
         if self.tick > self.ticks_per_frame {
             self.tick = 0;
             if self.image.frame + 1 >= self.loop_bounds.1 {
-                self.image.frame = 0;
+                self.image.set_frame(0);
             } else {
-                self.image.frame = self.image.frame + 1;
+                self.image.set_frame(self.image.frame + 1);
             }
         }
     }
@@ -313,11 +322,10 @@ impl PawAnimation {
     }
 
     pub fn set_frame(&mut self, frame: u8) {
-        self.image.frame = frame;
+        self.image.set_frame(frame);
     }
 
     pub fn draw(&self, disp: &mut impl DisplayDevice, dx: u8, dy: u8) {
         self.image.draw(disp, dx, dy);
     }
-    
 }

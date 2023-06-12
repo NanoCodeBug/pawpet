@@ -3,7 +3,6 @@
 
 pub mod menustate;
 
-
 mod gamestate;
 mod image;
 use crate::image::PawImage;
@@ -50,13 +49,13 @@ pub enum FramerateMs {
 // leave overhead for 60 fps mode if possible
 
 mod eggstate;
-mod game1;
 mod emptystate;
+mod game1;
 
-use menustate::MenuState;
-use game1::PawGame1;
 use eggstate::EggState;
 use emptystate::EmptyState;
+use game1::PawGame1;
+use menustate::MenuState;
 
 pub union StateUnion {
     menu: ManuallyDrop<MenuState>,
@@ -86,7 +85,8 @@ pub struct PawRunner {
 }
 
 const INACTIVITY_SLEEP_SEC: u32 = 60;
-static BATTERY_SPRITES: &'static [u8] = include_bytes_align_as!(u32, "../../../sprites/battery.paw");
+static BATTERY_SPRITES: &'static [u8] =
+    include_bytes_align_as!(u32, "../../../sprites/battery.paw");
 
 impl PawRunner {
     pub fn new() -> Self {
@@ -251,14 +251,11 @@ impl PawRunner {
         if new_state != self.state {
             match new_state {
                 StateKind::Main => {}
-                StateKind::Menu => {
-                    // TOOD make this a proc gen macro
-                    unsafe {
-                        *self.state_obj.menu = MenuState::new();
-                        (*self.state_obj.menu).load(storage);
-                        self.framerate = MenuState::get_fps();
-                    }
-                }
+                StateKind::Menu => unsafe {
+                    *self.state_obj.menu = MenuState::new();
+                    (*self.state_obj.menu).load(storage);
+                    self.framerate = MenuState::get_fps();
+                },
                 StateKind::Game1 => unsafe {
                     *self.state_obj.game1 = PawGame1::new();
                     (*self.state_obj.game1).load(storage);

@@ -24,8 +24,10 @@ if (Test-Path "$projectRoot/target/atsamd") {
 }
 else {
     Invoke-Expression "git clone https://github.com/atsamd-rs/atsamd --depth=1 $projectRoot/target/atsamd"
-    Invoke-Expression "git checkout a971cbfed87fc9224aebe9e6a2f1b9f64eb90450 --git-dir $projectRoot/target/atsamd"
-    Invoke-Expression "git apply patches/clock.patch --git-dir $projectRoot/target/atsamd"
+    Invoke-Expression "cd $projectRoot/target/atsamd"
+    Invoke-Expression "git checkout a971cbfed87fc9224aebe9e6a2f1b9f64eb90450"
+    Invoke-Expression "git apply ../../patch/clock.patch"
+    Invoke-Expression "cd $projectRoot"
 }
 
 # dropbox please stop
