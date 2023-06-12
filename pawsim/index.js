@@ -20,7 +20,7 @@ const renderLoop = () => {
 const playPauseButton = document.getElementById("play_button");
 const play = () => {
     console.log("play");
-    paused = false;
+    paused = false; + 2
     playPauseButton.textContent = "⏸️";
     animationId = setInterval(renderLoop, pawpet.get_framerate_ms() + 21);
     renderLoop();

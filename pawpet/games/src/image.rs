@@ -79,8 +79,17 @@ impl PawImage {
 
         let meta: &PawImageHeader = unsafe { &*meta_ptr };
 
-        self.image_ptr_offset = size_of::<PawImageHeader>() + 2;
+        self.image_ptr_offset = size_of::<PawImageHeader>();
 
+
+        // todo: fix image encoder
+        if meta.encoding == 2 || meta.encoding == 3
+        {
+            // its adding tile array offset for files that don't need it
+            // or make it consistent for bitmaps
+            self.image_ptr_offset = size_of::<PawImageHeader>() + 2;
+        }
+        
         // sprite map/animation
         if meta.tile_count > 1 {
             let frame_offsets_list = &data[size_of::<PawImageHeader>()..data.len()];
