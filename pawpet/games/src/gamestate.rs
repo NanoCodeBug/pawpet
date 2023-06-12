@@ -45,5 +45,6 @@ pub enum StateKind {
     Menu,
     Game1,
     Egg,
+    Empty,
 }
 

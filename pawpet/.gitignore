@@ -1,6 +1,5 @@
 bin
 target
 .vscode
-.cargo
 rust-toolchain.toml
 Cargo.lock

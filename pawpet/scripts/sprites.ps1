@@ -15,11 +15,14 @@ $images = @(
     , ("egg1", "egg_64x64")
     , ("slime1", "slime_32x32")
     , ("creature1", "creature_32x32")
+    , ("bg1", "bg1_64x64")
+    , ("window", "window")
 )
     
 $animations = @(
     , ("pet1-sit", "pet_sit_64x64")
     , ("egg-wobble1", "egg_wobble_32x32")
+    , ("pet1-idle", "pet1_idle_32x32")
 )
 
 # export slices of part file

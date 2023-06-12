@@ -1,8 +1,8 @@
 // Import our outputted wasm ES6 module
 // Which, export default's, an initialization function
-import init, { PawPetSim } from "./pkg/wasm_pawpet.js";
+import init, { PawPetSim } from "./wasm_pawpet.js";
 
-await init();
+await init("./<VERSION>/wasm_pawpet_bg.wasm");
 
 
 const pawpet = new PawPetSim();
@@ -22,7 +22,7 @@ const play = () => {
     console.log("play");
     paused = false;
     playPauseButton.textContent = "⏸️";
-    animationId = setInterval(renderLoop, pawpet.get_framerate_ms());
+    animationId = setInterval(renderLoop, pawpet.get_framerate_ms() + 21);
     renderLoop();
 };
 
@@ -112,7 +112,7 @@ let total_files_loaded = 0;
 
 const LoadToFileSystem = (name, path) => {
     const req = new XMLHttpRequest();
-    req.open("GET", path, true);
+    req.open("GET", "<VERSION>/"+path, true);
     req.responseType = "arraybuffer";
     req.onload = (event) => {
         const arrayBuffer = req.response; // Note: not req.responseText
@@ -121,7 +121,6 @@ const LoadToFileSystem = (name, path) => {
 
             console.log(path);
             console.log(name);
-
 
             pawpet.load_file(byteArray, name);
 
@@ -141,6 +140,8 @@ LoadToFileSystem("petsit", "assets/pet_sit.paw");
 LoadToFileSystem("icons", "assets/icons.paw");
 LoadToFileSystem("sleeptest", "assets/sleeptest.paw");
 LoadToFileSystem("egg_wobble", "assets/egg_wobble.paw");
+LoadToFileSystem("pet1_idle", "assets/pet1_idle.paw");
+LoadToFileSystem("window", "assets/window.paw");
 
 // TODO wait for assets to load before starting simulator
 

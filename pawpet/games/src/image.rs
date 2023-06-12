@@ -72,18 +72,29 @@ impl PawImage {
         // };
         let frame_offsets_slice = &data[size_of::<PawImageHeader>()..data.len()];
 
-        let tileoffset = meta.tile_count * 2;
-
-        let data_ptr_start: *const u8 = unsafe {
+        let mut image_ptr = unsafe {
             core::mem::transmute(
-                data[(size_of::<PawImageHeader>() + (tileoffset as usize))..data.len()].as_ptr(),
+                data[size_of::<PawImageHeader>()..data.len()].as_ptr(),
             )
         };
-        let frame = (self.frame as usize) * 2;
-        let frame_offset = [frame_offsets_slice[frame], frame_offsets_slice[frame + 1]];
-        let tile_loc_offset_bytes = u16::from_le_bytes(frame_offset);
 
-        let image_ptr = unsafe { data_ptr_start.offset(tile_loc_offset_bytes as isize) };
+        // sprite map/animation
+        if meta.tile_count > 1
+        {
+            let tileoffset = meta.tile_count * 2;
+
+            let data_ptr_start: *const u8 = unsafe {
+                core::mem::transmute(
+                    data[(size_of::<PawImageHeader>() + (tileoffset as usize))..data.len()].as_ptr(),
+                )
+            };
+            let frame = (self.frame as usize) * 2;
+            let frame_offset = [frame_offsets_slice[frame], frame_offsets_slice[frame + 1]];
+            let tile_loc_offset_bytes = u16::from_le_bytes(frame_offset);
+    
+            image_ptr = unsafe { data_ptr_start.offset(tile_loc_offset_bytes as isize) };
+        }
+
 
         match meta.encoding {
             0 => {

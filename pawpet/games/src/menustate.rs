@@ -17,7 +17,6 @@ use embedded_graphics::{
     mono_font::ascii::FONT_6X10,
     pixelcolor::BinaryColor,
     prelude::*,
-    // primitives::{Circle, PrimitiveStyleBuilder, Rectangle, Triangle},
     text::Text,
     Drawable,
 };
@@ -41,7 +40,7 @@ impl MenuState {
             selection: 0,
             menu_items: [
                 "Egg".into(),
-                "Item 2".into(),
+                "Empty".into(),
                 "Item 3".into(),
                 "Item 4".into(),
                 "Item 5".into(),
@@ -50,10 +49,6 @@ impl MenuState {
         }
     }
 }
-
-// static ICON_SPRITES: &'static [u8] = include_bytes_align_as!(u32, "../../sprites/icons.paw");
-// static PET_SIT: &'static [u8] = include_bytes_align_as!(u32, "../../sprites/pet_sit.paw");
-// static SLEEP_TEST: &'static [u8] = include_bytes_align_as!(u32, "../../sprites/sleeptest.paw");
 
 impl GameState for MenuState {
     fn tick(
@@ -81,6 +76,9 @@ impl GameState for MenuState {
             {
                 0 => {
                     return StateKind::Egg
+                },
+                1 => {
+                    return StateKind::Empty
                 },
                 _ => {}
             }
@@ -129,63 +127,5 @@ impl GameState for MenuState {
 
     fn need_redraw(&mut self) -> bool {
         return self.redraw;
-    }
-}
-
-pub struct PawGame1 {
-}
-impl PawGame1 {
-    pub fn new() -> Self {
-        Self {}
-    }
-}
-impl GameState for PawGame1 {
-    fn tick(
-        &mut self,
-        _buttons: &mut impl Input,
-        _tone: &impl Tone,
-        _battery: &mut impl BatteryMonitor,
-    ) -> StateKind {
-        return StateKind::Game1;
-    }
-
-    fn draw(&mut self, _display: &mut (impl Display + DrawTarget<Color = BinaryColor>)) {}
-}
-
-static EGG_SPRITE: &'static [u8] = include_bytes_align_as!(u32, "../../../sprites/egg.paw");
-static CREATURE_SPRITE: &'static [u8] = include_bytes_align_as!(u32, "../../../sprites/creature.paw");
-
-
-pub struct EggState {
-    egg: PawAnimation,
-}
-impl EggState {
-    pub fn new() -> Self {
-        Self {
-            egg: PawAnimation::new( (0,4), 8)
-        }
-    }
-}
-impl GameState for EggState {
-    fn tick(
-        &mut self,
-        _buttons: &mut impl Input,
-        _tone: &impl Tone,
-        _battery: &mut impl BatteryMonitor,
-    ) -> StateKind {
-
-        self.egg.tick();
-        return StateKind::Egg;
-    }
-
-    fn load(&mut self, storage: &mut impl Storage)
-    {
-        self.egg.set_image(storage.load_image("egg_wobble"));
-    }
-
-    fn draw(&mut self, display: &mut (impl Display + DrawTarget<Color = BinaryColor>)) {
-        display.clear(BinaryColor::Off).ok();
-        // self.egg.set_colors(false, true, Option::None);
-        self.egg.draw(display, 16, 16);
     }
 }

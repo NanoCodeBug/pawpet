@@ -2,6 +2,9 @@
 - music playback, music file format
 - battery consumption tests
 
+## perf notes
+- base screen ~ 5 ms to render empty (battery + peakms counter) frame. 
+
 ## Long Term Todo
 
 Bootloader Custom:

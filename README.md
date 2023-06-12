@@ -22,7 +22,7 @@ cd pawsim
 scripts/build.ps1
 ```
 
-`pawsim/index.html` can then be live hosted from the root of the `pawsim` folder, see [pawpet web simulator](https://www.nanocodebug.com/pawpet/index.html) for a working web simulator. 
+`index.html` can then be live hosted from the `pawsim\bin` folder, see [pawpet web simulator](https://www.nanocodebug.com/pawpet/index.html) for a working web simulator. 
 
 # Firmware Build Instructions
 
@@ -45,15 +45,20 @@ tools/build.ps1
 1. Install [powershell](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell-on-linux?view=powershell-7.3) (i'm sorry, I'll fix this soon)
 
 2. Install the [Rust](https://www.rust-lang.org/tools/install) SDK
-
-2. Run sdk-setup, which will setup the rust target dependencies
+3. Install linux dependencies (Ubuntu 20.04) 
 ```
+apt install build-essential libusb-dev libusb-1.0-0-dev libudev-dev pkg-config 
+```
+4. Run sdk-setup, which will setup the rust target dependencies
+```
+pwsh
 cd pawpet
 tools/sdk-setup.ps1
 ```
 
-3. Run build script
+5. Run build script
 ```
+pwsh
 cd pawpet
 tools/build.ps1
 ```

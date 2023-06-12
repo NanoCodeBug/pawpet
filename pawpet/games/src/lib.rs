@@ -3,6 +3,7 @@
 
 pub mod menustate;
 
+
 mod gamestate;
 mod image;
 use crate::image::PawImage;
@@ -48,14 +49,20 @@ pub enum FramerateMs {
 // ticks per update, arbitrary tick rate that should scale across fps
 // leave overhead for 60 fps mode if possible
 
+mod eggstate;
+mod game1;
+mod emptystate;
+
 use menustate::MenuState;
-use menustate::PawGame1;
-use menustate::EggState;
+use game1::PawGame1;
+use eggstate::EggState;
+use emptystate::EmptyState;
 
 pub union StateUnion {
     menu: ManuallyDrop<MenuState>,
     game1: ManuallyDrop<PawGame1>,
     egg: ManuallyDrop<EggState>,
+    empty: ManuallyDrop<EmptyState>,
 }
 
 pub struct PawRunner {
@@ -170,7 +177,8 @@ impl PawRunner {
         // functor to ui drawing object? ui drawing object to pass down?
         // return -> request sleep?
     ) {
-        timer.start(self.framerate as u32);
+        // TODO move this to after the wait
+        // timer.start(self.framerate as u32);
 
         // FEED THE DOG
         watchdog.feed();
@@ -227,6 +235,16 @@ impl PawRunner {
                     ManuallyDrop::drop(&mut self.state_obj.egg);
                 }
             },
+            StateKind::Empty => unsafe {
+                let state = &mut (*self.state_obj.empty);
+                new_state = state.tick(buttons, tone, battery);
+
+                state.draw(display);
+
+                if new_state != self.state {
+                    ManuallyDrop::drop(&mut self.state_obj.empty);
+                }
+            },
         }
 
         // Update union to next state
@@ -250,6 +268,11 @@ impl PawRunner {
                     *self.state_obj.egg = EggState::new();
                     (*self.state_obj.egg).load(storage);
                     self.framerate = EggState::get_fps();
+                },
+                StateKind::Empty => unsafe {
+                    *self.state_obj.empty = EmptyState::new();
+                    (*self.state_obj.empty).load(storage);
+                    self.framerate = EmptyState::get_fps();
                 },
             }
 
@@ -350,6 +373,7 @@ impl PawRunner {
             buttons.poll_buttons();
             // TODO, future, instead sleep?
         });
+        timer.start(self.framerate as u32);
 
         // if  self.frametime_index == 0
         // {
@@ -362,7 +386,7 @@ impl PawRunner {
 
         // }
 
-        if self.total_frametime_ms == 0 {
+        if self.total_frametime_ms > (self.framerate as u32) {
             self.dropped_frame_count += 1;
         }
 
